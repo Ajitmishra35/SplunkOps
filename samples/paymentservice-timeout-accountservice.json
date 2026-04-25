@@ -1,0 +1,39 @@
+[
+  {
+    "_time": "2026-04-25T08:00:00Z",
+    "level": "ERROR",
+    "service": "PaymentService",
+    "pod": "paymentservice-7d9d6c9d8f-x2k8q",
+    "namespace": "prod-payments",
+    "container": "payment-api",
+    "correlationId": "corr-pay-1001",
+    "path": "/api/payments/authorize",
+    "method": "POST",
+    "httpStatusCode": 504,
+    "durationMs": 30000,
+    "message": "TimeoutException: timed out calling downstream AccountService /api/accounts/hold after 30000ms",
+    "exception": "System.TimeoutException: The request to AccountService timed out"
+  },
+  {
+    "_time": "2026-04-25T08:00:02Z",
+    "level": "ERROR",
+    "service": "PaymentService",
+    "pod": "paymentservice-7d9d6c9d8f-x2k8q",
+    "namespace": "prod-payments",
+    "correlationId": "corr-pay-1001",
+    "path": "/api/payments/authorize",
+    "httpStatusCode": 504,
+    "message": "Retry attempt 2 failed for AccountService dependency"
+  },
+  {
+    "_time": "2026-04-25T08:00:04Z",
+    "level": "ERROR",
+    "service": "PaymentService",
+    "pod": "paymentservice-7d9d6c9d8f-x2k8q",
+    "namespace": "prod-payments",
+    "correlationId": "corr-pay-1001",
+    "path": "/api/payments/authorize",
+    "httpStatusCode": 504,
+    "message": "Retry attempt 3 failed for AccountService dependency"
+  }
+]

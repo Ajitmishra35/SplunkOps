@@ -1,0 +1,29 @@
+[
+  {
+    "_time": "2026-04-25T13:00:00Z",
+    "level": "ERROR",
+    "service": "NotificationService",
+    "pod": "notificationservice-6c8fd",
+    "namespace": "prod-comm",
+    "correlationId": "corr-retry-777",
+    "message": "Queue publish failed for Service Bus topic customer-events. Retry attempt 1."
+  },
+  {
+    "_time": "2026-04-25T13:00:01Z",
+    "level": "ERROR",
+    "service": "NotificationService",
+    "pod": "notificationservice-6c8fd",
+    "namespace": "prod-comm",
+    "correlationId": "corr-retry-777",
+    "message": "Queue publish failed for Service Bus topic customer-events. Retry attempt 2."
+  },
+  {
+    "_time": "2026-04-25T13:00:02Z",
+    "level": "ERROR",
+    "service": "NotificationService",
+    "pod": "notificationservice-6c8fd",
+    "namespace": "prod-comm",
+    "correlationId": "corr-retry-777",
+    "message": "Queue publish failed for Service Bus topic customer-events. Retry attempt 3."
+  }
+]

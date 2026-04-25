@@ -1,0 +1,14 @@
+[
+  {
+    "_time": "2026-04-25T11:20:00Z",
+    "level": "ERROR",
+    "serviceName": "InvoiceService",
+    "pod": "invoiceservice-78bdbd7f5f-bp6cq",
+    "namespace": "prod-billing",
+    "correlationId": "corr-inv-db-1",
+    "path": "/api/invoices",
+    "httpStatusCode": 500,
+    "message": "SqlException: Timeout expired. The timeout period elapsed prior to obtaining a connection from the pool.",
+    "exception": "Microsoft.Data.SqlClient.SqlException: Timeout expired"
+  }
+]

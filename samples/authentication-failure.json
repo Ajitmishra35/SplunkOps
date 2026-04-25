@@ -1,0 +1,13 @@
+[
+  {
+    "_time": "2026-04-25T12:30:00Z",
+    "level": "WARN",
+    "service": "IdentityGateway",
+    "pod": "identitygateway-5b985f",
+    "namespace": "prod-edge",
+    "correlationId": "corr-auth-403",
+    "path": "/api/profile",
+    "httpStatusCode": 403,
+    "message": "Forbidden: expired token. Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalidpayload.invalidsignature user=user@example.com"
+  }
+]

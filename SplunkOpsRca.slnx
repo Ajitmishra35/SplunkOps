@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SplunkOpsRca.Api/SplunkOpsRca.Api.csproj" />
+    <Project Path="src/SplunkOpsRca.Application/SplunkOpsRca.Application.csproj" />
+    <Project Path="src/SplunkOpsRca.Domain/SplunkOpsRca.Domain.csproj" />
+    <Project Path="src/SplunkOpsRca.Infrastructure/SplunkOpsRca.Infrastructure.csproj" />
+    <Project Path="src/SplunkOpsRca.Web/SplunkOpsRca.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SplunkOpsRca.Tests/SplunkOpsRca.Tests.csproj" />
+  </Folder>
+</Solution>

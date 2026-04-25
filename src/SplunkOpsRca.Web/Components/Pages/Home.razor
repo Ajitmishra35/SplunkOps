@@ -1,0 +1,226 @@
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using SplunkOpsRca.Application.UseCases
+@using SplunkOpsRca.Domain.Models
+@inject LogWorkflowService Workflow
+
+<PageTitle>SplunkOps RCA Agent</PageTitle>
+
+<main class="ops-shell">
+    <section class="workspace">
+        <aside class="left-pane">
+            <div class="brand-block">
+                <span class="eyebrow">Enterprise RCA Console</span>
+                <h1>SplunkOps RCA Agent</h1>
+                <p>Kubernetes microservice log analysis for Ops, Support, Developers, and SRE teams.</p>
+            </div>
+
+            <div class="upload-box">
+                <label for="fileInput">Splunk JSON or NDJSON export</label>
+                <InputFile id="fileInput" OnChange="UploadAsync" accept=".json,.ndjson,.log,.txt" disabled="@isBusy" />
+                @if (isBusy)
+                {
+                    <div class="progress-row"><span class="spinner"></span> Analyzing uploaded logs...</div>
+                }
+                @if (validationErrors.Count > 0)
+                {
+                    <ul class="validation-list">
+                        @foreach (var error in validationErrors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            @if (uploadResult is not null && uploadResult.ValidationErrors.Count == 0)
+            {
+                <div class="session-box">
+                    <div>
+                        <span>File</span>
+                        <strong>@uploadResult.FileName</strong>
+                    </div>
+                    <div>
+                        <span>Records</span>
+                        <strong>@uploadResult.RecordCount</strong>
+                    </div>
+                    <div>
+                        <span>Session</span>
+                        <code>@uploadResult.SessionId</code>
+                    </div>
+                </div>
+
+                <div class="field-list">
+                    <h2>Detected Fields</h2>
+                    @foreach (var field in uploadResult.DetectedFields.Take(18))
+                    {
+                        <div class="field-row">
+                            <span>@field.Name</span>
+                            <strong>@field.Count</strong>
+                        </div>
+                    }
+                </div>
+            }
+        </aside>
+
+        <section class="main-pane">
+            <div class="quick-actions">
+                @foreach (var action in quickActions)
+                {
+                    <button type="button" @onclick="() => RunQuickActionAsync(action)" disabled="@(!CanAsk)">
+                        @action
+                    </button>
+                }
+            </div>
+
+            <div class="chat-panel">
+                <div class="chat-history">
+                    @if (messages.Count == 0)
+                    {
+                        <div class="empty-state">
+                            Upload a Splunk JSON export, then ask what is happening, which pod is failing, or what Ops should do now.
+                        </div>
+                    }
+                    @foreach (var message in messages)
+                    {
+                        <article class="message @message.Role">
+                            <span>@message.Role</span>
+                            <pre>@message.Content</pre>
+                        </article>
+                    }
+                </div>
+
+                <div class="ask-row">
+                    <textarea @bind="question" placeholder="Ask about root cause, impacted service, correlationId, incident summary..." disabled="@(!CanAsk)"></textarea>
+                    <button type="button" @onclick="AskAsync" disabled="@(!CanAsk || string.IsNullOrWhiteSpace(question))">Ask</button>
+                </div>
+            </div>
+
+            @if (analysisResult is not null)
+            {
+                <section class="analysis-grid">
+                    <div>
+                        <h2>Top Services</h2>
+                        @foreach (var group in analysisResult.ErrorsByService.Take(6))
+                        {
+                            <div class="metric-row"><span>@group.Key</span><strong>@group.Count</strong></div>
+                        }
+                    </div>
+                    <div>
+                        <h2>Top Pods</h2>
+                        @foreach (var group in analysisResult.ErrorsByPod.Take(6))
+                        {
+                            <div class="metric-row"><span>@group.Key</span><strong>@group.Count</strong></div>
+                        }
+                    </div>
+                    <div>
+                        <h2>Patterns</h2>
+                        @foreach (var pattern in analysisResult.DetectedPatterns.Take(8))
+                        {
+                            <div class="pattern-chip">@pattern</div>
+                        }
+                    </div>
+                </section>
+            }
+        </section>
+    </section>
+</main>
+
+@code {
+    private static readonly string[] quickActions =
+    [
+        "Summarize logs",
+        "Find root cause",
+        "Show top errors",
+        "Group errors by service",
+        "Group errors by pod",
+        "Find timeout issues",
+        "Find failed APIs",
+        "Trace by correlationId",
+        "Explain for Ops team",
+        "Explain for Developers",
+        "Prepare incident report",
+        "Suggest Kubernetes checks",
+        "Suggest code fixes"
+    ];
+
+    private readonly List<ChatMessage> messages = [];
+    private readonly List<string> validationErrors = [];
+    private UploadResult? uploadResult;
+    private LogAnalysisResult? analysisResult;
+    private string question = "";
+    private bool isBusy;
+
+    private bool CanAsk => !isBusy && uploadResult is not null && uploadResult.ValidationErrors.Count == 0;
+
+    private async Task UploadAsync(InputFileChangeEventArgs args)
+    {
+        validationErrors.Clear();
+        messages.Clear();
+        analysisResult = null;
+        isBusy = true;
+        try
+        {
+            var file = args.File;
+            await using var stream = file.OpenReadStream(LogWorkflowService.MaxUploadBytes);
+            uploadResult = await Workflow.UploadAsync(file.Name, file.Size, stream, CancellationToken.None);
+            validationErrors.AddRange(uploadResult.ValidationErrors);
+            if (validationErrors.Count == 0)
+            {
+                await RunQuickActionAsync("Summarize logs");
+            }
+        }
+        catch (Exception ex)
+        {
+            validationErrors.Add(ex.Message);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RunQuickActionAsync(string action)
+    {
+        if (uploadResult is null)
+        {
+            return;
+        }
+
+        question = action == "Trace by correlationId" ? "Trace the most suspicious correlationId and explain the request path." : action;
+        await AskCoreAsync(question, action);
+    }
+
+    private async Task AskAsync()
+    {
+        await AskCoreAsync(question, null);
+        question = "";
+    }
+
+    private async Task AskCoreAsync(string prompt, string? action)
+    {
+        if (uploadResult is null || string.IsNullOrWhiteSpace(prompt))
+        {
+            return;
+        }
+
+        isBusy = true;
+        messages.Add(new ChatMessage("user", prompt));
+        try
+        {
+            analysisResult = await Workflow.AnalyzeAsync(new LogAnalysisRequest(uploadResult.SessionId, prompt, action), CancellationToken.None);
+            messages.Add(new ChatMessage("assistant", analysisResult?.AgentResponse.Markdown ?? "No analysis was produced."));
+        }
+        catch (Exception ex)
+        {
+            messages.Add(new ChatMessage("assistant", $"Analysis failed: {ex.Message}"));
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private sealed record ChatMessage(string Role, string Content);
+}

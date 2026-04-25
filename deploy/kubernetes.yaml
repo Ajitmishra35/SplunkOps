@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: splunkops-rca
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-openai
+  namespace: splunkops-rca
+type: Opaque
+stringData:
+  AzureOpenAI__ApiKey: "replace-with-key-or-use-external-secrets"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunkops-rca-api
+  namespace: splunkops-rca
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: splunkops-rca-api
+  template:
+    metadata:
+      labels:
+        app: splunkops-rca-api
+    spec:
+      containers:
+        - name: api
+          image: your-registry/splunkops-rca-api:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: AzureOpenAI__Endpoint
+              value: "https://your-azure-openai-resource.openai.azure.com"
+            - name: AzureOpenAI__DeploymentName
+              value: "your-chat-deployment"
+            - name: AzureOpenAI__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: azure-openai
+                  key: AzureOpenAI__ApiKey
+          readinessProbe:
+            httpGet:
+              path: /api/logs/nonexistent/summary
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunkops-rca-api
+  namespace: splunkops-rca
+spec:
+  selector:
+    app: splunkops-rca-api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunkops-rca-web
+  namespace: splunkops-rca
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: splunkops-rca-web
+  template:
+    metadata:
+      labels:
+        app: splunkops-rca-web
+    spec:
+      containers:
+        - name: web
+          image: your-registry/splunkops-rca-web:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: AzureOpenAI__Endpoint
+              value: "https://your-azure-openai-resource.openai.azure.com"
+            - name: AzureOpenAI__DeploymentName
+              value: "your-chat-deployment"
+            - name: AzureOpenAI__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: azure-openai
+                  key: AzureOpenAI__ApiKey
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunkops-rca-web
+  namespace: splunkops-rca
+spec:
+  type: LoadBalancer
+  selector:
+    app: splunkops-rca-web
+  ports:
+    - port: 80
+      targetPort: 8080

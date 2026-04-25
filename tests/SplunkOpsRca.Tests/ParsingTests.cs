@@ -50,5 +50,21 @@ public sealed class ParsingTests
         Assert.Equal(31000, records[0].DurationMs);
     }
 
+    [Fact]
+    public async Task Parses_Tenant_Client_Thread_And_Process_Fields()
+    {
+        var parser = new SplunkJsonLogParser(new SensitiveDataMaskingService());
+        await using var stream = ToStream("""
+{"_time":"2026-04-25T08:00:01Z","tenantId":"tenant-a","clientId":"client-42","threadId":"worker-7","processName":"PaymentWorkflow","correlationId":"corr-flow-1","service":"PaymentService","level":"INFO","message":"payment started"}
+""");
+
+        var records = await parser.ParseAsync(stream, CancellationToken.None);
+
+        Assert.Equal("tenant-a", records[0].TenantKey);
+        Assert.Equal("client-42", records[0].ClientKey);
+        Assert.Equal("worker-7", records[0].ThreadKey);
+        Assert.Equal("PaymentWorkflow", records[0].ProcessKey);
+    }
+
     private static MemoryStream ToStream(string value) => new(Encoding.UTF8.GetBytes(value));
 }

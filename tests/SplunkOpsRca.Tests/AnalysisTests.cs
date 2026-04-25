@@ -55,6 +55,34 @@ public sealed class AnalysisTests
         Assert.Equal(RootCauseClassification.KubernetesInfrastructureIssue, result.RootCause);
     }
 
+    [Fact]
+    public void Learns_Normal_Tenant_Client_Flow_And_Flags_Invalid_Deviation()
+    {
+        var service = new LogAnalysisService();
+        var records = BuildTenantFlowRecords();
+
+        var result = service.Analyze("session-flow", records);
+
+        Assert.NotEmpty(result.TenantClientFlowAnalysis.LearnedNormalFlows);
+        var deviation = Assert.Single(result.TenantClientFlowAnalysis.Deviations);
+        Assert.Equal("tenant-a", deviation.TenantKey);
+        Assert.Equal("client-bad", deviation.ClientKey);
+        Assert.Equal("Invalid / Problematic", deviation.Validity);
+        Assert.Contains("AccountService", deviation.ObservedFlow);
+    }
+
+    [Fact]
+    public void Classifies_Expected_Tenant_Client_Deviation_When_Evidence_Says_Expected()
+    {
+        var service = new LogAnalysisService();
+        var records = BuildTenantFlowRecords(includeExpectedDeviation: true);
+
+        var result = service.Analyze("session-flow", records);
+
+        Assert.Contains(result.TenantClientFlowAnalysis.Deviations, deviation =>
+            deviation.ClientKey == "client-expected" && deviation.Validity == "Expected / Valid");
+    }
+
     private static IReadOnlyList<LogRecord> BuildTimeoutRecords() =>
     [
         new LogRecord
@@ -103,4 +131,49 @@ public sealed class AnalysisTests
             Fields = new Dictionary<string, string?> { ["service"] = "PaymentService", ["pod"] = "payment-abc" }
         }
     ];
+
+    private static IReadOnlyList<LogRecord> BuildTenantFlowRecords(bool includeExpectedDeviation = false)
+    {
+        var records = new List<LogRecord>
+        {
+            Flow("corr-good-1", "client-good", "PaymentWorkflow", "PaymentService", "INFO", "started", 0),
+            Flow("corr-good-1", "client-good", "PaymentWorkflow", "AccountService", "INFO", "reserved account", 1),
+            Flow("corr-good-1", "client-good", "PaymentWorkflow", "LedgerService", "INFO", "posted ledger", 2),
+            Flow("corr-good-2", "client-good", "PaymentWorkflow", "PaymentService", "INFO", "started", 10),
+            Flow("corr-good-2", "client-good", "PaymentWorkflow", "AccountService", "INFO", "reserved account", 11),
+            Flow("corr-good-2", "client-good", "PaymentWorkflow", "LedgerService", "INFO", "posted ledger", 12),
+            Flow("corr-bad-1", "client-bad", "PaymentWorkflow", "PaymentService", "INFO", "started", 20),
+            Flow("corr-bad-1", "client-bad", "PaymentWorkflow", "AccountService", "ERROR", "TimeoutException failed calling database", 21, 504)
+        };
+
+        if (includeExpectedDeviation)
+        {
+            records.Add(Flow("corr-expected-1", "client-expected", "PaymentWorkflow", "PaymentService", "INFO", "expected business rule skipped ledger for test tenant", 30));
+        }
+
+        return records;
+    }
+
+    private static LogRecord Flow(string correlationId, string clientId, string processName, string service, string level, string message, int seconds, int? status = null) =>
+        new()
+        {
+            Timestamp = DateTimeOffset.Parse("2026-04-25T08:00:00Z").AddSeconds(seconds),
+            TenantId = "tenant-a",
+            ClientId = clientId,
+            ProcessName = processName,
+            CorrelationId = correlationId,
+            Service = service,
+            Pod = $"{service.ToLowerInvariant()}-1",
+            Level = level,
+            Message = message,
+            HttpStatusCode = status,
+            Fields = new Dictionary<string, string?>
+            {
+                ["tenantId"] = "tenant-a",
+                ["clientId"] = clientId,
+                ["processName"] = processName,
+                ["correlationId"] = correlationId,
+                ["service"] = service
+            }
+        };
 }

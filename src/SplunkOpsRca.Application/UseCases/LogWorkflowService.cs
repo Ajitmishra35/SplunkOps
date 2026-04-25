@@ -68,6 +68,12 @@ public sealed class LogWorkflowService(
         return session is null ? null : analysisService.TraceByCorrelationId(session.Records, correlationId);
     }
 
+    public async Task<TenantClientFlowAnalysis?> GetTenantClientFlowsAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        var session = await sessionStore.GetAsync(sessionId, cancellationToken);
+        return session is null ? null : analysisService.AnalyzeTenantClientFlows(session.Records);
+    }
+
     private static List<string> ValidateFile(string fileName, long length)
     {
         var errors = new List<string>();

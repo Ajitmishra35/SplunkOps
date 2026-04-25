@@ -250,15 +250,53 @@ button:disabled {
 
 .analysis-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 14px;
 }
 
-.analysis-grid > div {
+.analysis-grid > div, .flow-panel {
     background: #ffffff;
     border: 1px solid #d5dde5;
     border-radius: 8px;
     padding: 14px;
+}
+
+.flow-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.flow-panel h2 {
+    font-size: .95rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.flow-item {
+    border-top: 1px solid #d8e0e8;
+    padding: 10px 0;
+}
+
+.flow-item header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: .9rem;
+}
+
+.flow-item p {
+    margin: 6px 0;
+}
+
+.flow-item code, .flow-item small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.flow-item small {
+    color: #5b6b7a;
+    margin-top: 6px;
 }
 
 .pattern-chip {
@@ -276,7 +314,7 @@ button:disabled {
         grid-template-columns: 1fr;
     }
 
-    .analysis-grid {
+    .analysis-grid, .flow-panel {
         grid-template-columns: 1fr;
     }
 

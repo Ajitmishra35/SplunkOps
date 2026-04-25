@@ -121,7 +121,49 @@
                             <div class="pattern-chip">@pattern</div>
                         }
                     </div>
+                    <div>
+                        <h2>Tenant / Client Flow</h2>
+                        <div class="metric-row"><span>Tenants</span><strong>@analysisResult.TenantClientFlowAnalysis.TotalTenants</strong></div>
+                        <div class="metric-row"><span>Clients</span><strong>@analysisResult.TenantClientFlowAnalysis.TotalClients</strong></div>
+                        <div class="metric-row"><span>Deviations</span><strong>@analysisResult.TenantClientFlowAnalysis.DeviatingCorrelationCount</strong></div>
+                        <div class="metric-row"><span>Invalid</span><strong>@analysisResult.TenantClientFlowAnalysis.InvalidDeviationCount</strong></div>
+                    </div>
                 </section>
+
+                @if (analysisResult.TenantClientFlowAnalysis.Deviations.Count > 0 || analysisResult.TenantClientFlowAnalysis.TenantClientSummaries.Count > 0)
+                {
+                    <section class="flow-panel">
+                        <div>
+                            <h2>Deviation Decisions</h2>
+                            @foreach (var deviation in analysisResult.TenantClientFlowAnalysis.Deviations.Take(8))
+                            {
+                                <article class="flow-item">
+                                    <header>
+                                        <strong>@deviation.Validity</strong>
+                                        <span>@deviation.Severity</span>
+                                    </header>
+                                    <p>@deviation.TenantKey / @deviation.ClientKey / @deviation.ProcessKey</p>
+                                    <code>@deviation.ObservedFlow</code>
+                                    <small>@deviation.RecommendedAction</small>
+                                </article>
+                            }
+                        </div>
+                        <div>
+                            <h2>Tenant / Client Summary</h2>
+                            @foreach (var summary in analysisResult.TenantClientFlowAnalysis.TenantClientSummaries.Take(8))
+                            {
+                                <article class="flow-item">
+                                    <header>
+                                        <strong>@summary.TenantKey / @summary.ClientKey</strong>
+                                        <span>@summary.DeviationCount deviation(s)</span>
+                                    </header>
+                                    <p>@summary.Decision</p>
+                                    <small>@string.Join(", ", summary.Services)</small>
+                                </article>
+                            }
+                        </div>
+                    </section>
+                }
             }
         </section>
     </section>
@@ -142,7 +184,10 @@
         "Explain for Developers",
         "Prepare incident report",
         "Suggest Kubernetes checks",
-        "Suggest code fixes"
+        "Suggest code fixes",
+        "Analyze tenant/client flow",
+        "Find tenant deviations",
+        "Compare normal vs abnormal execution"
     ];
 
     private readonly List<ChatMessage> messages = [];

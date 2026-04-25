@@ -1,0 +1,76 @@
+[
+  {
+    "_time": "2026-04-25T09:00:00Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-normal",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-1",
+    "correlationId": "flow-normal-1",
+    "level": "INFO",
+    "service": "PaymentService",
+    "pod": "payment-7d9",
+    "message": "Payment workflow started"
+  },
+  {
+    "_time": "2026-04-25T09:00:01Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-normal",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-1",
+    "correlationId": "flow-normal-1",
+    "level": "INFO",
+    "service": "AccountService",
+    "pod": "account-58f",
+    "message": "Account reserved successfully"
+  },
+  {
+    "_time": "2026-04-25T09:00:02Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-normal",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-1",
+    "correlationId": "flow-normal-1",
+    "level": "INFO",
+    "service": "LedgerService",
+    "pod": "ledger-6c9",
+    "message": "Ledger entry posted"
+  },
+  {
+    "_time": "2026-04-25T09:01:00Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-risk",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-8",
+    "correlationId": "flow-risk-1",
+    "level": "INFO",
+    "service": "PaymentService",
+    "pod": "payment-7d9",
+    "message": "Payment workflow started"
+  },
+  {
+    "_time": "2026-04-25T09:01:08Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-risk",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-8",
+    "correlationId": "flow-risk-1",
+    "level": "ERROR",
+    "service": "AccountService",
+    "pod": "account-58f",
+    "httpStatusCode": 504,
+    "exception": "TimeoutException: database timeout while reserving account",
+    "message": "Account reservation failed after retry attempt 3"
+  },
+  {
+    "_time": "2026-04-25T09:02:00Z",
+    "tenantId": "tenant-alpha",
+    "clientId": "client-expected",
+    "processName": "PaymentWorkflow",
+    "threadId": "worker-3",
+    "correlationId": "flow-expected-1",
+    "level": "INFO",
+    "service": "PaymentService",
+    "pod": "payment-7d9",
+    "message": "Expected business rule: ledger posting skipped for test tenant"
+  }
+]

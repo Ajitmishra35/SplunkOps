@@ -25,7 +25,11 @@ public sealed record LogRecord
     public string? RequestId { get; init; }
     public string? TenantId { get; init; }
     public string? OrganizationId { get; init; }
+    public string? ClientId { get; init; }
     public string? UserId { get; init; }
+    public string? ThreadId { get; init; }
+    public string? ProcessId { get; init; }
+    public string? ProcessName { get; init; }
     public string? Path { get; init; }
     public string? Method { get; init; }
     public int? HttpStatusCode { get; init; }
@@ -41,6 +45,12 @@ public sealed record LogRecord
     public string ApiPathKey => FirstNonEmpty(Path, "unknown-path");
     public string CorrelationKey => FirstNonEmpty(CorrelationId, TraceId, RequestId, "unknown-correlation");
     public string ExceptionKey => FirstNonEmpty(ExceptionType, Exception, "unknown-exception");
+    public string TenantKey => FirstNonEmpty(TenantId, OrganizationId, Field("tenant"), Field("org"), Field("organization"), "unknown-tenant");
+    public string ClientKey => FirstNonEmpty(ClientId, Field("client"), Field("client_id"), Field("customerId"), Field("customer_id"), Field("accountId"), Field("account_id"), "unknown-client");
+    public string ProcessKey => FirstNonEmpty(ProcessName, ProcessId, Field("operation"), Field("operationName"), Field("workflow"), Field("flow"), ApiPathKey, "unknown-process");
+    public string ThreadKey => FirstNonEmpty(ThreadId, Field("thread"), Field("thread_id"), Field("thread.name"), "unknown-thread");
+
+    private string? Field(string name) => Fields.GetValueOrDefault(name);
 
     private static string FirstNonEmpty(params string?[] values) =>
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "unknown";

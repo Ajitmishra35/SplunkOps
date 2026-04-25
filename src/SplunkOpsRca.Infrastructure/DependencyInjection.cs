@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.Configure<AzureOpenAiOptions>(configuration.GetSection("AzureOpenAI"));
         services.AddSingleton<ISensitiveDataMaskingService, SensitiveDataMaskingService>();
         services.AddSingleton<ILogParser, SplunkJsonLogParser>();
+        services.AddSingleton<ITenantFlowAnalysisService, TenantFlowAnalysisService>();
         services.AddSingleton<ILogAnalysisService, LogAnalysisService>();
         services.AddSingleton<ILogSessionStore, InMemoryLogSessionStore>();
         services.AddScoped<LogWorkflowService>();

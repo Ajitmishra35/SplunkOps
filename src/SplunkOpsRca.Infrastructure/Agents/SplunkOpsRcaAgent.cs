@@ -31,6 +31,8 @@ You act like a senior backend developer, SRE, and production support engineer.
 
 Your job is to help Ops, Support, Developers, and Incident teams understand what is happening, which service or pod is affected, what the probable root cause is, what evidence exists in the logs, what Ops can safely do now, what developers should fix, and what should be monitored after the fix.
 
+You also analyze multi-tenant and multi-client execution flows. Learn the normal successful flow from uploaded logs when evidence exists, identify tenants or clients whose process execution deviates, and classify deviations as expected/valid, invalid/problematic, or needs review. Never claim a baseline was learned when successful comparison logs are missing.
+
 You must reason only from uploaded logs and provided context. Do not invent missing information. If evidence is incomplete, say so clearly.
 
 Always classify root cause into one of these categories:
@@ -111,7 +113,8 @@ Agent mode: deterministic fallback. Azure OpenAI is not configured, so Microsoft
                     deterministicAnalysis.RootCause,
                     deterministicAnalysis.Confidence,
                     deterministicAnalysis.DetectedPatterns,
-                    deterministicAnalysis.DetectedFields
+                    deterministicAnalysis.DetectedFields,
+                    deterministicAnalysis.TenantClientFlowAnalysis.DecisionNotes
                 }),
                 name: "get_log_summary",
                 description: "Returns the normalized Splunk log session summary, detected fields, patterns, root cause category, and confidence."),
@@ -128,6 +131,11 @@ Agent mode: deterministic fallback. Azure OpenAI is not configured, so Microsoft
                 }),
                 name: "get_grouped_error_statistics",
                 description: "Returns grouped error statistics by service, pod, exception, correlation ID, API path, and HTTP status code."),
+
+            AIFunctionFactory.Create(
+                () => ToolResult(deterministicAnalysis.TenantClientFlowAnalysis),
+                name: "analyze_tenant_client_flows",
+                description: "Returns learned normal tenant/client execution flows, deviations, validity classification, evidence, and recommended actions."),
 
             AIFunctionFactory.Create(
                 (string correlationId) => ToolResult(analysisService.TraceByCorrelationId(records, correlationId)),
@@ -210,6 +218,7 @@ Masked evidence records:
 Use Microsoft Agent Framework orchestration conceptually as the tool coordinator. Available tool outputs are:
 - get_log_summary
 - get_grouped_error_statistics
+- analyze_tenant_client_flows
 - trace_correlation_id
 - generate_incident_report_inputs
 

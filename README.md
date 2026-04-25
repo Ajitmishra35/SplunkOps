@@ -32,6 +32,7 @@ The infrastructure layer uses `ISplunkOpsRcaAgent` and `IAzureOpenAiChatService`
 
 - `get_log_summary`
 - `get_grouped_error_statistics`
+- `analyze_tenant_client_flows`
 - `trace_correlation_id`
 - `generate_incident_report_inputs`
 
@@ -72,6 +73,7 @@ If Azure OpenAI is not configured, the app falls back to deterministic local ana
 - `GET /api/logs/{sessionId}/summary`
 - `GET /api/logs/{sessionId}/errors`
 - `GET /api/logs/{sessionId}/correlation/{correlationId}`
+- `GET /api/logs/{sessionId}/tenant-flows`
 
 Uploads use multipart form data with field name `file`.
 
@@ -85,7 +87,20 @@ The parser supports:
 - JSON encoded inside `message`, `log`, or `_raw`
 - Common Splunk, OpenTelemetry, Kubernetes, and application log field variants
 
-Normalized fields include timestamp, `_time`, level, severity, service, pod, namespace, container, source, sourcetype, index, message, exception, stack trace, trace/correlation/request IDs, tenant/user identifiers, HTTP method/path/status, and duration.
+Normalized fields include timestamp, `_time`, level, severity, service, pod, namespace, container, source, sourcetype, index, message, exception, stack trace, trace/correlation/request IDs, tenant/client/user identifiers, thread/process identifiers, HTTP method/path/status, and duration.
+
+## Tenant / Client Flow Intelligence
+
+The application now includes deterministic multi-tenant flow analysis:
+
+- Groups records by tenant, client, process, and correlation ID
+- Learns dominant successful execution signatures from clean correlations
+- Compares tenant/client correlations against learned normal flow
+- Detects sequence, duration, and failure deviations
+- Classifies deviations as `Expected / Valid`, `Invalid / Problematic`, or `Needs Review`
+- Adds evidence and recommended action for each deviation
+
+This is intentionally evidence-based. If uploaded logs do not contain successful comparison flows or tenant/client identifiers, the response says what is missing instead of inventing a baseline.
 
 ## Example Ops Questions
 
@@ -96,6 +111,9 @@ Normalized fields include timestamp, `_time`, level, severity, service, pod, nam
 - Group errors by pod.
 - Suggest Kubernetes checks.
 - Prepare an incident report.
+- Analyze tenant/client flow.
+- Find tenant deviations.
+- Compare normal vs abnormal execution.
 
 ## Example Developer Questions
 

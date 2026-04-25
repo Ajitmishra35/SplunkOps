@@ -120,4 +120,11 @@ group.MapGet("/{sessionId}/correlation/{correlationId}", async (string sessionId
 })
 .WithName("TraceCorrelationId");
 
+group.MapGet("/{sessionId}/tenant-flows", async (string sessionId, LogWorkflowService workflow, CancellationToken cancellationToken) =>
+{
+    var flows = await workflow.GetTenantClientFlowsAsync(sessionId, cancellationToken);
+    return flows is null ? Results.NotFound(new { message = "Session was not found." }) : Results.Ok(flows);
+})
+.WithName("AnalyzeTenantClientFlows");
+
 app.Run();

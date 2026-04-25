@@ -4,8 +4,10 @@ using SplunkOpsRca.Domain.Models;
 
 namespace SplunkOpsRca.Infrastructure.Services;
 
-public sealed class LogAnalysisService : ILogAnalysisService
+public sealed class LogAnalysisService(ITenantFlowAnalysisService? tenantFlowAnalysisService = null) : ILogAnalysisService
 {
+    private readonly ITenantFlowAnalysisService tenantFlowAnalysisService = tenantFlowAnalysisService ?? new TenantFlowAnalysisService();
+
     public LogAnalysisResult Analyze(string sessionId, IReadOnlyList<LogRecord> records, string? question = null, string? action = null)
     {
         var errorRecords = records.Where(IsErrorLike).ToArray();
@@ -13,7 +15,8 @@ public sealed class LogAnalysisService : ILogAnalysisService
         var rootCause = Classify(patterns, errorRecords);
         var confidence = CalculateConfidence(rootCause, errorRecords, patterns);
         var evidence = errorRecords.Take(20).Select(ToEvidence).ToArray();
-        var agentResponse = BuildDeterministicResponse(records, errorRecords, patterns, rootCause, confidence, evidence, question, action);
+        var tenantFlowAnalysis = AnalyzeTenantClientFlows(records);
+        var agentResponse = BuildDeterministicResponse(records, errorRecords, patterns, rootCause, confidence, evidence, tenantFlowAnalysis, question, action);
 
         return new LogAnalysisResult
         {
@@ -28,6 +31,7 @@ public sealed class LogAnalysisService : ILogAnalysisService
             ErrorsByHttpStatusCode = Group(errorRecords.Where(record => record.HttpStatusCode.HasValue), record => record.HttpStatusCode!.Value.ToString()),
             DetectedPatterns = patterns,
             Evidence = evidence,
+            TenantClientFlowAnalysis = tenantFlowAnalysis,
             RootCause = rootCause,
             Confidence = confidence,
             AgentResponse = agentResponse
@@ -63,6 +67,9 @@ public sealed class LogAnalysisService : ILogAnalysisService
 
         return new CorrelationTrace(correlationId, trace.Length, trace);
     }
+
+    public TenantClientFlowAnalysis AnalyzeTenantClientFlows(IReadOnlyList<LogRecord> records) =>
+        tenantFlowAnalysisService.Analyze(records);
 
     private static bool IsErrorLike(LogRecord record)
     {
@@ -148,6 +155,7 @@ public sealed class LogAnalysisService : ILogAnalysisService
         RootCauseClassification rootCause,
         string confidence,
         IReadOnlyList<string> evidence,
+        TenantClientFlowAnalysis tenantFlowAnalysis,
         string? question,
         string? action)
     {
@@ -159,16 +167,20 @@ public sealed class LogAnalysisService : ILogAnalysisService
         var executive = errorRecords.Count == 0
             ? "No obvious error pattern is visible in the uploaded logs. More targeted logs around the incident window may be needed."
             : $"The uploaded logs show {errorRecords.Count} failure-like events across {services.Length} service(s). The strongest signal is {string.Join(", ", patterns.Take(3))}.";
-        var technical = $"Analyzed {records.Count} records. Root cause classification is {FormatRootCause(rootCause)} with {confidence} confidence.";
+        var technical = $"Analyzed {records.Count} records. Root cause classification is {FormatRootCause(rootCause)} with {confidence} confidence. Tenant/client flow analysis found {tenantFlowAnalysis.DeviatingCorrelationCount} deviating correlation(s), including {tenantFlowAnalysis.InvalidDeviationCount} invalid/problematic candidate(s).";
+        var flowEvidence = tenantFlowAnalysis.Deviations
+            .Take(5)
+            .Select(deviation => $"{deviation.Validity}: tenant={deviation.TenantKey}, client={deviation.ClientKey}, process={deviation.ProcessKey}, correlation={deviation.CorrelationId}, observed={deviation.ObservedFlow}, expected={deviation.ExpectedFlow}")
+            .ToArray();
 
         var response = new AgentResponse
         {
             ExecutiveSummary = executive,
             TechnicalSummary = technical,
             ImpactedComponents = components.Length == 0 ? ["Unknown from provided logs"] : components,
-            ErrorPattern = string.Join("; ", patterns),
+            ErrorPattern = string.Join("; ", patterns.Concat(tenantFlowAnalysis.DecisionNotes)),
             ProbableRootCause = $"{FormatRootCause(rootCause)} - {confidence} confidence",
-            EvidenceFromLogs = evidence,
+            EvidenceFromLogs = evidence.Concat(flowEvidence).Take(25).ToArray(),
             OpsActions =
             [
                 "Check status and recent restarts for only the impacted pods.",

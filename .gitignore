@@ -23,6 +23,8 @@ appsettings.*.local.json
 
 docker-compose.override.yml
 
+src/SplunkOpsRca.Web/wwwroot/lib/
+
 *.log
 *.tmp
 *.bak
